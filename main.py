@@ -19,7 +19,24 @@ selected = None
 
 
 # Sounds
-click = 0
+
+# initialize Mixer
+pygame.mixer.init()
+
+select = pygame.mixer.Sound("select.mp3")
+# Credit / Attribution
+# https://www.chosic.com/download-audio/54450/
+swap = pygame.mixer.Sound("swap11labs.mp3")
+# Credit / Attribution
+# https://elevenlabs.io/sound-effects/beeps
+# "BEEPS 1"
+
+fail = pygame.mixer.Sound("fail11labs.mp3")
+# Credit / Attribution
+# https://elevenlabs.io/sound-effects/wrong-buzzer
+# "WRONG BUZZER 3"
+
+
 
 # Colors
 BACKGROUND_COLOR = (30, 30, 30)
@@ -101,15 +118,21 @@ def get_cell_from_mouse(pos):
 
 def are_adjacent(a, b):
     if not a or not b:
+        pygame.mixer.Sound.play(fail)
         return False
     r1, c1 = a
     r2, c2 = b
-    return abs(r1 - r2) + abs(c1 - c2) == 1
+    erg = abs(r1 - r2) + abs(c1 - c2) == 1
+    if not erg:
+        pygame.mixer.Sound.play(fail)
+    return erg
 
 def swap_blocks(a, b):
     r1, c1 = a
     r2, c2 = b
     puzzle_grid[r1][c1], puzzle_grid[r2][c2] = puzzle_grid[r2][c2], puzzle_grid[r1][c1]
+    pygame.mixer.Sound.play(swap)
+    
 
 def grids_match(g1, g2):
     for row in range(GRID_SIZE):
@@ -132,6 +155,7 @@ def swap_by_color(c1, c2):
         print(f"Swapped {c1} and {c2}")
     else:
         print("Blocks not adjacent or not found.")
+        
 
 def swap_with_this(words, grid, hovered):
     if hovered is None:
@@ -171,6 +195,7 @@ def swap_with_this(words, grid, hovered):
         print(f"[VOICE] Swapped {hovered} and {target_pos}")
     else:
         print("[VOICE] Blocks not adjacent — can't swap.")
+        
 
 def handle_voice_command(command):
     global puzzle_grid, selected, hovered
@@ -287,11 +312,13 @@ while running:
             if clicked:
                 if selected == clicked:
                     selected = None  # unselect
+                    pygame.mixer.Sound.play(select)
                 elif selected and are_adjacent(selected, clicked):
                     swap_blocks(selected, clicked)
                     selected = None
                 else:
                     selected = clicked
+                    pygame.mixer.Sound.play(select)
 
     clock.tick(60)
 
