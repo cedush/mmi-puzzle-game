@@ -16,6 +16,11 @@ WINDOW_WIDTH = GRID_SIZE * (BLOCK_SIZE + MARGIN) + MARGIN
 hovered = None
 selected = None
 
+
+
+# Sounds
+click = 0
+
 # Colors
 BACKGROUND_COLOR = (30, 30, 30)
 HIGHLIGHT_COLOR = (255, 255, 255)
@@ -42,6 +47,18 @@ clock = pygame.time.Clock()
 # Generate the goal grid (solution)
 shuffled_colors = random.sample(COLOR_PALETTE, GRID_SIZE * GRID_SIZE)
 goal_grid = [[shuffled_colors[row * GRID_SIZE + col] for col in range(GRID_SIZE)] for row in range(GRID_SIZE)]
+
+
+# Load background music
+pygame.mixer.music.load("background.mp3")
+# Credit / Attribution
+# Local Forecast – Elevator by Kevin MacLeod | https://incompetech.com/
+# Music promoted by https://www.chosic.com/free-music/all/
+# Creative Commons Creative Commons: By Attribution 3.0 License
+# http://creativecommons.org/licenses/by/3.0/
+# Also see txt file
+pygame.mixer.music.play(loops=1)
+ 
 
 # Make a deep copy and shuffle it for the puzzle
 def shuffled_grid_from(goal):
@@ -231,15 +248,37 @@ while running:
 
     # Check win condition
     if grids_match(goal_grid, puzzle_grid):
+        if not won:
+            # Play victory music
+            pygame.mixer.music.stop()
+            pygame.mixer.music.unload()
+                    
+            pygame.mixer.music.load("won.mp3")
+            # Credit / Attribution
+            # Sparks by Chaël:
+            # http://chael-music.com/ 
+            # https://www.instagram.com/chaelmusic/ 
+            # https://www.tiktok.com/@chael_music 
+            # https://www.facebook.com/chaelmusicofficial
+            # https://www.youtube.com/@chaelofficial
+            # Music promoted by https://www.chosic.com/free-music/all/
+ 
+            pygame.mixer.music.play(loops=1)
         won = True
         font = pygame.font.SysFont(None, 48)
         text = font.render("You solved it!", True, (255, 255, 255))
         screen.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 10))
 
+
+        
+        
+
     pygame.display.flip()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            pygame.mixer.music.stop()
+            pygame.mixer.music.unload()
             running = False
             break
 
