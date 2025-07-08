@@ -1,0 +1,4 @@
+Source for swap11labs.mp3: 
+https://elevenlabs.io/sound-effects/beeps
+"BEEPS 1"
+elevenlabs.io
