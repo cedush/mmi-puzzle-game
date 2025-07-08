@@ -38,6 +38,12 @@ fail = pygame.mixer.Sound("fail11labs.mp3")
 
 
 
+# Turn number
+turnNumber = 1
+
+
+
+
 # Colors
 BACKGROUND_COLOR = (30, 30, 30)
 HIGHLIGHT_COLOR = (255, 255, 255)
@@ -132,6 +138,9 @@ def swap_blocks(a, b):
     r2, c2 = b
     puzzle_grid[r1][c1], puzzle_grid[r2][c2] = puzzle_grid[r2][c2], puzzle_grid[r1][c1]
     pygame.mixer.Sound.play(swap)
+    global turnNumber
+    turnNumber += 1
+    
     
 
 def grids_match(g1, g2):
@@ -271,14 +280,17 @@ while running:
         hovered=hovered
     )
 
+    # Display Turn Number
+
+
     # Check win condition
     if grids_match(goal_grid, puzzle_grid):
         if not won:
             # Play victory music
             pygame.mixer.music.stop()
             pygame.mixer.music.unload()
-                    
             pygame.mixer.music.load("won.mp3")
+            
             # Credit / Attribution
             # Sparks by Chaël:
             # http://chael-music.com/ 
@@ -291,8 +303,17 @@ while running:
             pygame.mixer.music.play(loops=1)
         won = True
         font = pygame.font.SysFont(None, 48)
-        text = font.render("You solved it!", True, (255, 255, 255))
-        screen.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 10))
+        text = font.render("Won in " + str(turnNumber) + " turns!", True, (255, 255, 255))
+
+    else:
+        font = pygame.font.SysFont(None, 48)
+        text = font.render("Now in turn " + str(turnNumber), True, (255, 255, 255))
+        
+        
+
+
+
+    screen.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 10))
 
 
         
