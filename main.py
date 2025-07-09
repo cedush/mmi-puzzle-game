@@ -25,9 +25,12 @@ selected = None
 hovered = None
 turnNumber = 1
 won = False
+last_voice_command = ""
 
 def handle_voice_command(command):
-    global puzzle_grid, selected, hovered, turnNumber
+    global puzzle_grid, selected, hovered, turnNumber, last_voice_command
+
+    last_voice_command = command
 
     if "swap" in command or "switch" in command:
         try:
@@ -90,6 +93,8 @@ while True:
     draw_grid(screen, goal_grid)
 
     puzzle_top = GRID_SIZE * (BLOCK_SIZE + MARGIN) + MARGIN + GAP_BETWEEN_GRIDS
+    puzzle_bottom = puzzle_top + GRID_SIZE * (BLOCK_SIZE + MARGIN)
+
     mouse_pos = pygame.mouse.get_pos()
     row = (mouse_pos[1] - puzzle_top) // (BLOCK_SIZE + MARGIN)
     col = mouse_pos[0] // (BLOCK_SIZE + MARGIN)
@@ -105,9 +110,15 @@ while True:
     else:
         msg = f"Now in turn {turnNumber}"
 
+    # Win or turn message
     font = pygame.font.SysFont(None, 48)
     text = font.render(msg, True, (255, 255, 255))
     screen.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 10))
+    # Voice command message
+    pygame.draw.rect(screen, (40, 40, 40), (0, puzzle_bottom + MARGIN, WINDOW_WIDTH - MARGIN, 30))
+    voice_font = pygame.font.SysFont(None, 24)
+    voice_text = voice_font.render(f"> {last_voice_command}", True, (200, 200, 200))
+    screen.blit(voice_text, (MARGIN, puzzle_bottom + 2 * MARGIN))
 
     pygame.display.flip()
 
