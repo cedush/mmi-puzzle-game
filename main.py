@@ -88,6 +88,7 @@ def swap_with_this(words, grid, hovered):
 voice_thread = threading.Thread(target=voice_listener, args=(handle_voice_command,), daemon=True)
 voice_thread.start()
 
+# GAME LOOP
 while True:
     screen.fill(BACKGROUND_COLOR)
     draw_grid(screen, goal_grid)
@@ -96,10 +97,13 @@ while True:
     puzzle_bottom = puzzle_top + GRID_SIZE * (BLOCK_SIZE + MARGIN)
 
     mouse_pos = pygame.mouse.get_pos()
-    row = (mouse_pos[1] - puzzle_top) // (BLOCK_SIZE + MARGIN)
-    col = mouse_pos[0] // (BLOCK_SIZE + MARGIN)
+    if mouse_pos[0] >= GRID_OFFSET_X:
+        row = (mouse_pos[1] - puzzle_top) // (BLOCK_SIZE + MARGIN)
+        col = (mouse_pos[0] - GRID_OFFSET_X) // (BLOCK_SIZE + MARGIN)
+        hovered = (row, col) if 0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE else None
+    else:
+        hovered = None
 
-    hovered = (row, col) if 0 <= row < GRID_SIZE and 0 <= col < GRID_SIZE else None
     draw_grid(screen, puzzle_grid, top_offset=puzzle_top, highlight=selected, hovered=hovered)
 
     if grids_match(goal_grid, puzzle_grid):
@@ -110,10 +114,29 @@ while True:
     else:
         msg = f"Now in turn {turnNumber}"
 
+    # Color legend
+    legend_font = pygame.font.SysFont(None, 24)
+
+    legend_start_x = 10
+    legend_start_y = 100
+    line_height = 30
+    circle_radius = 8
+
+    for i, (name, color) in enumerate(name_to_color.items()):
+        y = legend_start_y + i * line_height
+
+        # Draw color circle
+        pygame.draw.circle(screen, color, (legend_start_x + circle_radius, y + circle_radius), circle_radius)
+
+        # Draw name
+        label = legend_font.render(name.capitalize(), True, (220, 220, 220))
+        screen.blit(label, (legend_start_x + circle_radius * 2 + 8, y))
+
     # Win or turn message
     font = pygame.font.SysFont(None, 48)
     text = font.render(msg, True, (255, 255, 255))
-    screen.blit(text, (WINDOW_WIDTH // 2 - text.get_width() // 2, 10))
+    screen.blit(text, (GRID_OFFSET_X + BLOCK_SIZE // 2, GRID_SIZE * BLOCK_SIZE + GAP_BETWEEN_GRIDS // 2 + MARGIN))
+
     # Voice command message
     pygame.draw.rect(screen, (40, 40, 40), (0, puzzle_bottom + MARGIN, WINDOW_WIDTH - MARGIN, 30))
     voice_font = pygame.font.SysFont(None, 24)
