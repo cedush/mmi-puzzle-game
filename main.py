@@ -35,12 +35,13 @@ hovered = None  # cell currently under mouse cursor
 turn_number = 1
 won = False
 last_voice_command = ""
+is_muted = False  # new state for mute button
 
 
 # Helpers
 def init_round() -> None:
     """Create a fresh goal/puzzle grid and reset round‑specific vars."""
-    global goal_grid, puzzle_grid, selected, hovered, turn_number, won, last_voice_command, is_processing_action
+    global goal_grid, puzzle_grid, selected, hovered, turn_number, won, last_voice_command, is_processing_action, is_muted
 
     shuffled_colors = random.sample(COLOR_PALETTE, GRID_SIZE * GRID_SIZE)
     goal_grid = [
@@ -55,6 +56,7 @@ def init_round() -> None:
     won = False
     last_voice_command = ""
     is_processing_action = False
+    is_muted = False # reset mute state on new round
 
 
 def draw_menu() -> pygame.Rect:
@@ -137,6 +139,34 @@ def draw_game_over() -> pygame.Rect:
     screen.blit(label, label.get_rect(center=btn_rect.center))
 
     return btn_rect
+
+# new function to draw the mute button
+def draw_mute_button(screen, muted) -> pygame.Rect:
+    """Draws the mute button in the top right and returns its rect."""
+    text = "Unmute" if muted else "Mute"
+    font = pygame.font.SysFont(None, 32)
+    label_surf = font.render(text, True, (0, 0, 0))
+    
+    padding = 10
+    btn_rect = label_surf.get_rect()
+    btn_rect.inflate_ip(padding * 2, padding * 2)
+    btn_rect.topright = (WINDOW_WIDTH - MARGIN, MARGIN) # position in top-right
+
+    pygame.draw.rect(screen, (200, 200, 200), btn_rect, border_radius=8)
+    screen.blit(label_surf, label_surf.get_rect(center=btn_rect.center))
+    
+    return btn_rect
+
+# new function to handle the mute logic
+def toggle_mute() -> None:
+    """Toggles the mute state and pauses/unpauses music."""
+    global is_muted
+    is_muted = not is_muted
+    if is_muted:
+        pygame.mixer.music.pause()
+    else:
+        pygame.mixer.music.unpause()
+    play_sound("select")
 
 
 def start_round() -> None:
@@ -305,6 +335,7 @@ while True:
             continue
 
         draw_game_hud()
+        mute_btn_rect = draw_mute_button(screen, is_muted) # draw the mute button
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -317,7 +348,10 @@ while True:
                 return_to_menu()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if not is_processing_action and hovered is not None:
+                # new: check for mute button click first
+                if mute_btn_rect.collidepoint(event.pos):
+                    toggle_mute()
+                elif not is_processing_action and hovered is not None:
                     if selected is None:
                         selected = hovered
                         play_sound("select")
