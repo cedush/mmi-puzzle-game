@@ -143,7 +143,7 @@ def start_round() -> None:
     global state
     stop_music()
     init_round()
-    play_music("bg_music", loops=1)
+    play_music("bg_music", loops=-1)
     state = GameState.PLAYING
 
 
