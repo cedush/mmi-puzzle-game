@@ -6,7 +6,7 @@ from enum import Enum
 
 from voice_listener import voice_listener
 from helpers import *
-from sound_manager import play_music, play_sound
+from sound_manager import play_music, stop_music, play_sound
 
 pygame.init()
 
@@ -37,11 +37,6 @@ last_voice_command = ""
 
 
 # Helpers
-def stop_music():
-    """Utility wrapper to silence whatever is currently playing."""
-    pygame.mixer.music.stop()
-
-
 def init_round() -> None:
     """Create a fresh goal/puzzle grid and reset round‑specific vars."""
     global goal_grid, puzzle_grid, selected, hovered, turn_number, won, last_voice_command
@@ -88,10 +83,11 @@ def draw_game_hud() -> None:
     """Information footer under the puzzle grid."""
     # Turn counter / win message
     font = pygame.font.SysFont(None, 48)
-    msg = f"Gewonnen in {turn_number} Zügen!" if won else f"Zug {turn_number}"
-    screen.blit(
-        font.render(msg, True, (255, 255, 255)),
-        (GRID_OFFSET_X, GRID_SIZE * BLOCK_SIZE + GAP_BETWEEN_GRIDS // 2),
+    msg = f"Won in {turn_number} turns!" if won else f"Turn {turn_number}"
+    msg_surface = font.render(msg, True, (255, 255, 255))
+    screen.blit(msg_surface, msg_surface.get_rect(center=(
+        GRID_OFFSET_X + (GRID_SIZE * BLOCK_SIZE) // 2 + 2 * MARGIN,
+        GRID_SIZE * BLOCK_SIZE + GAP_BETWEEN_GRIDS + MARGIN))
     )
 
     # Voice command line
@@ -130,7 +126,7 @@ def draw_game_over() -> pygame.Rect:
 
     # Back‑to‑menu button
     b_font = pygame.font.SysFont(None, 48)
-    label = b_font.render("Zurück zum Menü", True, (0, 0, 0))
+    label = b_font.render("Back to Menu", True, (0, 0, 0))
     padding = 20
     btn_rect = label.get_rect()
     btn_rect.inflate_ip(padding * 2, padding * 2)
@@ -185,10 +181,10 @@ def swap_by_color(c1, c2):
     pos1 = pos2 = None
     for r in range(GRID_SIZE):
         for c in range(GRID_SIZE):
-            colour = puzzle_grid[r][c]
-            if colour == c1 and not pos1:
+            color = puzzle_grid[r][c]
+            if color == c1 and not pos1:
                 pos1 = (r, c)
-            elif colour == c2 and not pos2:
+            elif color == c2 and not pos2:
                 pos2 = (r, c)
     if pos1 and pos2 and are_adjacent(pos1, pos2):
         global turn_number
