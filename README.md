@@ -1,11 +1,15 @@
 🎮 MMI Puzzle Game
+
 A simple but challenging puzzle game that explores multimodal interaction—control it with your mouse, your voice, or both at the same time!
 
 The goal is to rearrange the bottom grid of colors to perfectly match the pattern in the top grid.
 
 ![Gameplay Demo](gameplay.gif)
 
+---
+
 ## ✨ Features
+
 Classic Mouse Controls: Click to select and swap adjacent tiles.
 
 Voice Commands: Control the entire game with your voice.
@@ -18,7 +22,10 @@ Modality Fusion: Combine mouse and voice for advanced commands! Just point at a 
 
 Modality Fission: The game is smart enough to resolve conflicts. If you start an action with the mouse, it will ignore voice commands until you're done, avoiding any confusion.
 
+---
+
 ## 🚀 Getting Started
+
 Follow these steps to get the game running on your local machine.
 
 1. Prerequisites
@@ -31,35 +38,40 @@ An internet connection (for the voice recognition API)
 2. Installation & Setup
 First, clone the repository to your machine:
 
-Bash
-
+```bash
 git clone https://github.com/cedush/mmi-puzzle-game.git
 cd mmi-puzzle-game
+```
+
 Next, it's a good idea to create a virtual environment to keep dependencies clean:
 
-Bash
-
+```bash
 # Create a virtual environment
 python -m venv venv
 
 # Activate it
-# On Windows:
+## On Windows:
 venv\Scripts\activate
-# On macOS/Linux:
+## On macOS/Linux:
 source venv/bin/activate
-Finally, install the required packages.
+```
 
-Bash
+Finally, install the required packages:
 
+```bash
 pip install -r requirements.txt
-(Nota: Si no tienes un archivo requirements.txt, puedes crearlo fácilmente con el comando pip freeze > requirements.txt)
+```
+
+---
 
 ## 🕹️ How to Play
+
 With your virtual environment activated, simply run the main script:
 
-Bash
-
+```bash
 python main.py
+```
+
 Controls
 🖱️ Mouse
 Click a tile: Selects it.
