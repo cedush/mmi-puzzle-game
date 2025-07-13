@@ -66,14 +66,13 @@ def get_cell_from_mouse(pos, puzzle_top, left_offset=GRID_OFFSET_X):
     return None
 
 def are_adjacent(a, b):
+    # removed sound playing from here to give caller more control over feedback
     if not a or not b:
-        play_sound("fail")
         return False
     r1, c1 = a
     r2, c2 = b
     if abs(r1 - r2) + abs(c1 - c2) == 1:
         return True
-    play_sound("fail")
     return False
 
 def swap_blocks(grid, a, b, turn_counter):

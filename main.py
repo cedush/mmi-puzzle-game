@@ -26,6 +26,7 @@ class GameState(Enum):
 
 # Runtime globals (is reset between rounds)
 state: GameState = GameState.MENU
+is_processing_action = False  # lock to prevent concurrent actions
 
 goal_grid = []  # immutable reference grid (top)
 puzzle_grid = []  # user‑manipulated grid (bottom)
@@ -34,12 +35,13 @@ hovered = None  # cell currently under mouse cursor
 turn_number = 1
 won = False
 last_voice_command = ""
+is_muted = False  # new state for mute button
 
 
 # Helpers
 def init_round() -> None:
     """Create a fresh goal/puzzle grid and reset round‑specific vars."""
-    global goal_grid, puzzle_grid, selected, hovered, turn_number, won, last_voice_command
+    global goal_grid, puzzle_grid, selected, hovered, turn_number, won, last_voice_command, is_processing_action, is_muted
 
     shuffled_colors = random.sample(COLOR_PALETTE, GRID_SIZE * GRID_SIZE)
     goal_grid = [
@@ -53,6 +55,8 @@ def init_round() -> None:
     turn_number = 1
     won = False
     last_voice_command = ""
+    is_processing_action = False
+    is_muted = False # reset mute state on new round
 
 
 def draw_menu() -> pygame.Rect:
@@ -136,6 +140,34 @@ def draw_game_over() -> pygame.Rect:
 
     return btn_rect
 
+# new function to draw the mute button
+def draw_mute_button(screen, muted) -> pygame.Rect:
+    """Draws the mute button in the top right and returns its rect."""
+    text = "Unmute" if muted else "Mute"
+    font = pygame.font.SysFont(None, 32)
+    label_surf = font.render(text, True, (0, 0, 0))
+    
+    padding = 10
+    btn_rect = label_surf.get_rect()
+    btn_rect.inflate_ip(padding * 2, padding * 2)
+    btn_rect.topright = (WINDOW_WIDTH - MARGIN, MARGIN) # position in top-right
+
+    pygame.draw.rect(screen, (200, 200, 200), btn_rect, border_radius=8)
+    screen.blit(label_surf, label_surf.get_rect(center=btn_rect.center))
+    
+    return btn_rect
+
+# new function to handle the mute logic
+def toggle_mute() -> None:
+    """Toggles the mute state and pauses/unpauses music."""
+    global is_muted
+    is_muted = not is_muted
+    if is_muted:
+        pygame.mixer.music.pause()
+    else:
+        pygame.mixer.music.unpause()
+    play_sound("select")
+
 
 def start_round() -> None:
     global state
@@ -153,31 +185,49 @@ def return_to_menu() -> None:
 
 # Voice‑command
 def handle_voice_command(command: str) -> None:
-    global puzzle_grid, selected, hovered, turn_number, last_voice_command
-    if state != GameState.PLAYING:
+    global puzzle_grid, selected, hovered, turn_number, last_voice_command, is_processing_action
+    
+    # fission solution: if a mouse selection is active, ignore voice commands
+    if selected is not None:
+        last_voice_command = "Finish mouse action before using voice."
+        return
+
+    if state != GameState.PLAYING or is_processing_action:
         return
 
     last_voice_command = command
 
     try:
+        is_processing_action = True  # lock action while processing command
         if any(k in command for k in ("swap", "switch")):
             words = command.split()
             if any(w in command for w in ("this", "that")):
                 swap_with_this(words, puzzle_grid, hovered)
             else:
-                # expects "swap red and blue"
-                c1 = get_color_from_command(words[1])
-                c2 = get_color_from_command(words[3])
-                if c1 and c2:
-                    swap_by_color(c1, c2)
+                # flexible parsing: find two colors anywhere in the command
+                color_names = [word for word in words if word in name_to_color]
+                if len(color_names) < 2:
+                    raise ValueError("You must specify two valid colors.")
+
+                c1 = get_color_from_command(color_names[0])
+                c2 = get_color_from_command(color_names[1])
+                swap_by_color(c1, c2)
+
         elif "shuffle" in command:
             puzzle_grid[:] = shuffled_grid_from(goal_grid)
             selected = None
+    except ValueError as e:
+        last_voice_command = f"Error: {e}"  # show specific error to user
+        play_sound("fail")
     except Exception as e:
+        last_voice_command = "Sorry, I didn't understand."  # generic error
         print(f"[VOICE] error while handling '{command}': {e}")
+    finally:
+        is_processing_action = False  # always release lock
 
 
 def swap_by_color(c1, c2):
+    global turn_number
     pos1 = pos2 = None
     for r in range(GRID_SIZE):
         for c in range(GRID_SIZE):
@@ -186,21 +236,27 @@ def swap_by_color(c1, c2):
                 pos1 = (r, c)
             elif color == c2 and not pos2:
                 pos2 = (r, c)
-    if pos1 and pos2 and are_adjacent(pos1, pos2):
-        global turn_number
+
+    if not pos1 or not pos2:
+        raise ValueError("One or both colors not found on the grid.")
+
+    if are_adjacent(pos1, pos2):
         turn_number = swap_blocks(puzzle_grid, pos1, pos2, turn_number)
+    else:
+        raise ValueError("Tiles must be adjacent to swap.")
 
 
 def swap_with_this(words, grid, hovered_cell):
+    global turn_number
     if hovered_cell is None:
-        return
+        raise ValueError("You must point at a tile with the mouse.")
 
     color_name = next(
-        (w for w in words if w not in {"swap", "switch", "and", "this", "that"}), None
+        (w for w in words if w not in {"swap", "switch", "with", "and", "this", "that"}), None
     )
     color_rgb = get_color_from_command(color_name)
     if color_rgb is None:
-        return
+        raise ValueError(f"Color '{color_name}' not recognized.")
 
     target = None
     for r in range(GRID_SIZE):
@@ -210,10 +266,14 @@ def swap_with_this(words, grid, hovered_cell):
                 break
         if target:
             break
+    
+    if not target:
+        raise ValueError(f"Color '{color_name}' not found on the grid.")
 
-    if target and are_adjacent(hovered_cell, target):
-        global turn_number
+    if are_adjacent(hovered_cell, target):
         turn_number = swap_blocks(grid, hovered_cell, target, turn_number)
+    else:
+        raise ValueError("Pointed tile and spoken color are not adjacent.")
 
 
 # Spawn background thread for STT
@@ -275,6 +335,7 @@ while True:
             continue
 
         draw_game_hud()
+        mute_btn_rect = draw_mute_button(screen, is_muted) # draw the mute button
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -287,22 +348,28 @@ while True:
                 return_to_menu()
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if hovered is not None:
+                # new: check for mute button click first
+                if mute_btn_rect.collidepoint(event.pos):
+                    toggle_mute()
+                elif not is_processing_action and hovered is not None:
                     if selected is None:
                         selected = hovered
                         play_sound("select")
 
                     elif hovered == selected:
-                        selected = None
+                        selected = None # deselect
 
                     elif are_adjacent(selected, hovered):
+                        is_processing_action = True  # lock action
                         turn_number = swap_blocks(
                             puzzle_grid, selected, hovered, turn_number
                         )
                         selected = None
-                        play_sound("swap")
+                        is_processing_action = False  # release lock
                     else:
+                        play_sound("fail") # feedback for non-adjacent click
                         selected = hovered
+
 
     # GAME OVER
     elif state == GameState.GAME_OVER:
@@ -323,4 +390,4 @@ while True:
                     play_sound("select")
                     return_to_menu()
 
-        clock.tick(60)
+    clock.tick(60)
